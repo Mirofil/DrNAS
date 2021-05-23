@@ -11,12 +11,6 @@ def format_input_data(base_inputs, base_targets, arch_inputs, arch_targets, sear
         arch_inputs, arch_targets = None, None
     all_base_inputs, all_base_targets, all_arch_inputs, all_arch_targets = [base_inputs], [base_targets], [arch_inputs], [arch_targets]
     for extra_step in range(inner_steps-1):
-        if args.inner_steps_same_batch:
-            all_base_inputs.append(base_inputs)
-            all_base_targets.append(base_targets)
-            all_arch_inputs.append(arch_inputs)
-            all_arch_targets.append(arch_targets)
-            continue # If using the same batch, we should not try to query the search_loader_iter for more samples
         try:
             if loader_type == "train-val" or loader_type == "train-train":
               extra_base_inputs, extra_base_targets, extra_arch_inputs, extra_arch_targets = next(search_loader_iter)
@@ -57,11 +51,10 @@ def avg_state_dicts(state_dicts: List):
 
 def fo_grad_if_possible(args, fnetwork, criterion, all_arch_inputs, all_arch_targets, arch_inputs, arch_targets, cur_grads, inner_step, step, outer_iter, first_order_grad, first_order_grad_for_free_cond, first_order_grad_concurrently_cond, logger=None):
     if first_order_grad_for_free_cond: # If only doing Sum-of-first-order-SOTL gradients in FO-SOTL-DARTS or similar, we can just use these gradients that were already computed here without having to calculate more gradients as in the second-order gradient case
-      if args.first_order_strategy != "last": # TODO fix this last thing
         if inner_step < 3 and step == 0:
             msg = f"Adding cur_grads to first_order grads at inner_step={inner_step}, step={step}, outer_iter={outer_iter}. First_order_grad is head={str(first_order_grad)[0:100]}, cur_grads is {str(cur_grads)[0:100]}"
             if logger is not None:
-                logger.log(msg)
+                logger.info(msg)
             else:
                 print(msg)
         with torch.no_grad():
@@ -71,7 +64,6 @@ def fo_grad_if_possible(args, fnetwork, criterion, all_arch_inputs, all_arch_tar
             first_order_grad = [g1 + g2 for g1, g2 in zip(first_order_grad, cur_grads)]
     elif first_order_grad_concurrently_cond:
       # NOTE this uses a different arch_sample everytime!
-      if args.first_order_strategy != "last": # TODO fix this last thing
         if args.higher_method == "val":
           _, logits = fnetwork(all_arch_inputs[len(all_arch_inputs)-1])
           arch_loss = criterion(logits, all_arch_targets[len(all_arch_targets)-1]) * (1 if args.sandwich is None else 1/args.sandwich)
@@ -96,12 +88,12 @@ def hyper_meta_step(network, inner_rollouts, meta_grads, args, data_step, logger
             for i, rollout in enumerate(inner_rollouts):
                 msg = f"Printing {i}-th rollout's weight sample: {str(list(rollout.values())[1])[0:75]}"
                 if logger is not None:
-                    logger.log(msg)
+                    logger.info(msg)
                 else:
                     print(msg)
             msg = f"Average of all rollouts: {str(list(avg_inner_rollout.values())[1])[0:75]}"
             if logger is not None:
-                logger.log(msg)
+                logger.info(msg)
             else:
                 print(msg)
         network.load_state_dict(
@@ -111,7 +103,7 @@ def hyper_meta_step(network, inner_rollouts, meta_grads, args, data_step, logger
         if epoch < 2 and logger is not None:
             msg = f"Reductioning in the outer loop (len(meta_grads)={len(meta_grads)}, head={str(meta_grads)[0:150]}) with outer reduction={args.higher_reduction_outer}, outer_iters={outer_iters}"
             if logger is not None:
-                logger.log(msg)
+                logger.info(msg)
             else:
                 print(msg)
         with torch.no_grad():
@@ -197,7 +189,7 @@ def hypergrad_outer(
                     if step == 0 and epoch < 2:
                         msg = f"Reductioning all_grads (len={len(all_grads)} with reduction={args.higher_reduction}, inner_steps={inner_steps}"
                         if logger is not None:
-                            logger.log(msg)
+                            logger.info(msg)
                         else:
                             print()
                     if args.higher_reduction == "sum":
@@ -238,10 +230,10 @@ def hypergrad_outer(
                     ]
                     if step == 0 and epoch < 2:
                         if logger is not None:
-                            logger.log(
+                            logger.info(
                                 f"Reductioning all_grads (len={len(all_grads)} with reduction={args.higher_reduction}, inner_steps={inner_steps}"
                             )
-                            logger.log(f"Grads sample before: {all_grads[0]}")
+                            logger.info(f"Grads sample before: {all_grads[0]}")
                         else:
                             print(
                                 f"Reductioning all_grads (len={len(all_grads)} with reduction={args.higher_reduction}, inner_steps={inner_steps}"
@@ -275,7 +267,7 @@ def hypergrad_outer(
                     assert torch.all_close(
                         zero_arch_grads_lambda(all_grads[0]), meta_grads[0]
                     )
-                    logger.log(
+                    logger.info(
                         f"Correctnes of first-order gradients was checked! Samples:"
                     )
                     print(all_grads[0][0])
