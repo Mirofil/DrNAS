@@ -367,7 +367,7 @@ def train_higher(train_queue, valid_queue, network, architect, criterion, w_opti
         sotl, first_order_grad = [], None
         inner_rollouts, meta_grads = [], [] # For implementing meta-batch_size in Reptile/MetaProx and similar
 
-        if epoch >= 0:
+        if epoch >= 10:
             for inner_step, (base_inputs, base_targets, arch_inputs, arch_targets) in enumerate(zip(all_base_inputs, all_base_targets, all_arch_inputs, all_arch_targets)):
                 if data_step in [0, 1] and inner_step < 3 and epoch % 5 == 0:
                     print(f"Base targets in the inner loop at inner_step={inner_step}, step={data_step}: {base_targets[0:10]}")
