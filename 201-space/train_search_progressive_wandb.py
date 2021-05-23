@@ -419,8 +419,7 @@ def main():
       weight_decay = args.reg_scale
     elif args.reg_type == 'kl':
       weight_decay = 0
-    meta_optimizer = torch.optim.Adam(model.arch_parameters(),
-        lr=args.arch_learning_rate, betas=(0.5, 0.999), weight_decay=weight_decay)
+
     
     
     for i, current_epochs in enumerate(train_epochs):
