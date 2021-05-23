@@ -13,15 +13,14 @@ def format_input_data(base_inputs, base_targets, arch_inputs, arch_targets, sear
     for extra_step in range(inner_steps-1):
         try:
             if loader_type == "train-val" or loader_type == "train-train":
-              extra_base_inputs, extra_base_targets, extra_arch_inputs, extra_arch_targets = next(search_loader_iter)
+              (extra_base_inputs, extra_base_targets), (extra_arch_inputs, extra_arch_targets)= next(search_loader_iter)
             else:
               extra_base_inputs, extra_base_targets = next(search_loader_iter)
               extra_arch_inputs, extra_arch_targets = None, None
-        except:
+        except Exception as e:
             continue
         # extra_base_inputs, extra_arch_inputs = extra_base_inputs.cuda(non_blocking=True), extra_arch_inputs.cuda(non_blocking=True)
         # extra_base_targets, extra_arch_targets = extra_base_targets.cuda(non_blocking=True), extra_arch_targets.cuda(non_blocking=True)
-        
         extra_base_inputs, extra_base_targets = extra_base_inputs.cuda(non_blocking=True), extra_base_targets.cuda(non_blocking=True)
         if extra_arch_inputs is not None and extra_arch_targets is not None:
           extra_arch_inputs, extra_arch_targets = extra_arch_inputs.cuda(non_blocking=True), extra_arch_targets.cuda(non_blocking=True)
