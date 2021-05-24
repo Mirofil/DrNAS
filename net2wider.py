@@ -81,7 +81,10 @@ def configure_optimizer(optimizer_old, optimizer_new):
         if not hasattr(p, 'raw_id'):
             optimizer_new.state[p] = optimizer_old.state[p]
             continue
-        state_old = optimizer_old.state_dict()['state'][p.raw_id]
+        try:
+            state_old = optimizer_old.state_dict()['state'][i]
+        except Exception as e:
+            print(f"Failed at {p.raw_id} due to {e}")
         state_new = optimizer_new.state[p]
 
         state_new['momentum_buffer'] = state_old['momentum_buffer']
