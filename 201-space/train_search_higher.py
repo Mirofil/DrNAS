@@ -14,7 +14,7 @@ import torch.nn.functional as F
 import torchvision.datasets as dset
 import torch.backends.cudnn as cudnn
 import wandb
-
+from tqdm import tqdm
 from torch.autograd import Variable
 from search_model import TinyNetwork
 from cell_operations import NAS_BENCH_201
@@ -250,7 +250,7 @@ def main():
     
     
     for i, current_epochs in enumerate(train_epochs):
-        for e in range(current_epochs):
+        for e in tqdm(range(current_epochs), desc = "Iter over inner epochs"):
             lr = scheduler.get_lr()[0]
             logging.info('epoch %d lr %e', epoch, lr)
             genotype = model.genotype()
@@ -291,12 +291,13 @@ def main():
                     }
                 
                 wandb.log({**acc_log, **loss_log, **true_acc_log})
-                
-                writer.add_scalars('accuracy', {'train':train_acc,'valid':valid_acc}, epoch)
-                writer.add_scalars('loss', {'train':train_obj,'valid':valid_obj}, epoch)
-                writer.add_scalars('nasbench201/cifar10', {'train':cifar10_train,'test':cifar10_test}, epoch)
-                writer.add_scalars('nasbench201/cifar100', {'train':cifar100_train,'valid':cifar100_valid, 'test':cifar100_test}, epoch)
-                writer.add_scalars('nasbench201/imagenet16', {'train':imagenet16_train,'valid':imagenet16_valid, 'test':imagenet16_test}, epoch)
+                log_epoch = epoch if i == 0 else epoch + train_epochs[0]
+
+                writer.add_scalars('accuracy', {'train':train_acc,'valid':valid_acc}, log_epoch)
+                writer.add_scalars('loss', {'train':train_obj,'valid':valid_obj}, log_epoch)
+                writer.add_scalars('nasbench201/cifar10', {'train':cifar10_train,'test':cifar10_test}, log_epoch)
+                writer.add_scalars('nasbench201/cifar100', {'train':cifar100_train,'valid':cifar100_valid, 'test':cifar100_test}, log_epoch)
+                writer.add_scalars('nasbench201/imagenet16', {'train':imagenet16_train,'valid':imagenet16_valid, 'test':imagenet16_test}, log_epoch)
 
                 utils.save_checkpoint({
                     'epoch': epoch + 1,
