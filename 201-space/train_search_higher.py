@@ -394,28 +394,24 @@ def train_higher(train_queue, valid_queue, network, architect, criterion, w_opti
                                                 monkeypatch_higher_grads_cond=True, zero_arch_grads_lambda=zero_arch_grads, meta_grads=meta_grads,
                                                 step=data_step, epoch=epoch, logger=None)
         
-        if first_order_grad is not None:
-            assert first_order_grad_for_free_cond or first_order_grad_concurrently_cond
-            if epoch < 2:
-                print(f"Putting first_order_grad into meta_grads (NOTE we aggregate first order grad by summing in the first place to save memory, so dividing by inner steps gives makes it average over the rollout) (len of first_order_grad ={len(first_order_grad)}, len of param list={len(list(network.parameters()))}) with reduction={args.higher_reduction}, inner_steps (which is the division factor)={inner_steps}, head={first_order_grad[0]}")
-            if args.higher_reduction == "sum": # the first_order_grad is computed in a way that equals summing
-                meta_grads.append(first_order_grad)
-            else:
-                meta_grads.append([g/inner_steps if g is not None else g for g in first_order_grad])  
-                
-        avg_meta_grad = hyper_meta_step(network, inner_rollouts, meta_grads, args, data_step, logger, model_init=None, outer_iters=1, epoch=epoch)
-        with torch.no_grad():  # Update the pre-rollout weights
-            for (n, p), g in zip(network.named_parameters(), avg_meta_grad):
-                cond = 'arch' not in n if args.higher_params == "weights" else 'arch' in n  # The meta grads typically contain all gradient params because they arise as a result of torch.autograd.grad(..., model.parameters()) in Higher
-                if cond:
-                    if g is not None and p.requires_grad:
-                        p.grad = g
-        a_optimizer.step()
+            if first_order_grad is not None:
+                assert first_order_grad_for_free_cond or first_order_grad_concurrently_cond
+                if epoch < 2:
+                    print(f"Putting first_order_grad into meta_grads (NOTE we aggregate first order grad by summing in the first place to save memory, so dividing by inner steps gives makes it average over the rollout) (len of first_order_grad ={len(first_order_grad)}, len of param list={len(list(network.parameters()))}) with reduction={args.higher_reduction}, inner_steps (which is the division factor)={inner_steps}, head={first_order_grad[0]}")
+                if args.higher_reduction == "sum": # the first_order_grad is computed in a way that equals summing
+                    meta_grads.append(first_order_grad)
+                else:
+                    meta_grads.append([g/inner_steps if g is not None else g for g in first_order_grad])  
+                    
+            avg_meta_grad = hyper_meta_step(network, inner_rollouts, meta_grads, args, data_step, logger, model_init=None, outer_iters=1, epoch=epoch)
+            with torch.no_grad():  # Update the pre-rollout weights
+                for (n, p), g in zip(network.named_parameters(), avg_meta_grad):
+                    cond = 'arch' not in n if args.higher_params == "weights" else 'arch' in n  # The meta grads typically contain all gradient params because they arise as a result of torch.autograd.grad(..., model.parameters()) in Higher
+                    if cond:
+                        if g is not None and p.requires_grad:
+                            p.grad = g
+            a_optimizer.step()
         
-        
-        # if epoch >= 10: # Some kind of grace period?
-        #     architect.step(base_inputs, base_targets, input_search, target_search, lr, w_optimizer, unrolled=args.unrolled)
-            
         w_optimizer.zero_grad()
         architect.optimizer.zero_grad()
         
