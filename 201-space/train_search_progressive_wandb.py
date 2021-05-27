@@ -201,12 +201,14 @@ def main():
         train_data = dset.SVHN(root=args.data, split='train', download=True, transform=train_transform)
     elif args.dataset == 'imagenet16-120':
         import torchvision.transforms as transforms
-        from nasbench201.DownsampledImageNet import ImageNet16
+        from DownsampledImageNet import ImageNet16
         mean = [x / 255 for x in [122.68, 116.66, 104.01]]
         std = [x / 255 for x in [63.22,  61.26, 65.09]]
         lists = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(16, padding=2), transforms.ToTensor(), transforms.Normalize(mean, std)]
         train_transform = transforms.Compose(lists)
-        train_data = ImageNet16(root=os.path.join(args.data,'imagenet16'), train=True, transform=train_transform, use_num_of_class_only=120)
+        imagenet_path = os.path.join(os.environ["TORCH_HOME"], "cifar.python/ImageNet16/")
+        
+        train_data = ImageNet16(imagenet_path, train=True, transform=train_transform, use_num_of_class_only=120)
         assert len(train_data) == 151700
 
     num_train = len(train_data)

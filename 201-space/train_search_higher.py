@@ -209,12 +209,13 @@ def main():
         train_data = dset.SVHN(root=args.data, split='train', download=True, transform=train_transform)
     elif args.dataset == 'imagenet16-120':
         import torchvision.transforms as transforms
-        from nasbench201.DownsampledImageNet import ImageNet16
+        from DownsampledImageNet import ImageNet16
         mean = [x / 255 for x in [122.68, 116.66, 104.01]]
         std = [x / 255 for x in [63.22,  61.26, 65.09]]
         lists = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(16, padding=2), transforms.ToTensor(), transforms.Normalize(mean, std)]
         train_transform = transforms.Compose(lists)
-        train_data = ImageNet16(root=os.path.join(args.data,'imagenet16'), train=True, transform=train_transform, use_num_of_class_only=120)
+        imagenet_path = os.path.join(os.environ.get["TORCH_HOME"], "cifar.python/ImageNet16/")
+        train_data = ImageNet16(root=imagenet_path, train=True, transform=train_transform, use_num_of_class_only=120)
         assert len(train_data) == 151700
 
     num_train = len(train_data)
@@ -443,51 +444,6 @@ def train_higher(train_queue, valid_queue, network, architect, criterion, w_opti
 
         if data_step % args.report_freq == 0:
             logging.info('train %03d %e %f %f', data_step, objs.avg, top1.avg, top5.avg)
-        if 'debug' in args.save:
-            break
-
-    return  top1.avg, objs.avg
-  
-    
-    
-def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, epoch):
-    objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
-
-    for step, (input, target) in enumerate(train_queue):
-        model.train()
-        n = input.size(0)
-
-        input = input.cuda()
-        target = target.cuda(non_blocking=True)
-
-        # get a random minibatch from the search queue with replacement
-        input_search, target_search = next(iter(valid_queue))
-        input_search = input_search.cuda()
-        target_search = target_search.cuda(non_blocking=True)
-        
-        if epoch >= 10:
-            architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
-        optimizer.zero_grad()
-        architect.optimizer.zero_grad()
-
-        logits = model(input)
-        loss = criterion(logits, target)
-
-        loss.backward()
-        nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-        optimizer.step()
-        optimizer.zero_grad()
-        architect.optimizer.zero_grad()
-
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
-        objs.update(loss.data, n)
-        top1.update(prec1.data, n)
-        top5.update(prec5.data, n)
-
-        if step % args.report_freq == 0:
-            logging.info('train %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
         if 'debug' in args.save:
             break
 
