@@ -3,7 +3,7 @@ from collections import namedtuple
 Genotype = namedtuple('Genotype', 'normal normal_concat reduce reduce_concat')
 
 PRIMITIVES = [
-    # 'none',
+    'none',
     'max_pool_3x3',
     'avg_pool_3x3',
     'skip_connect',
@@ -12,6 +12,11 @@ PRIMITIVES = [
     'dil_conv_3x3',
     'dil_conv_5x5'
 ]
+
+def count_ops(genotype):
+  genotype = str(genotype)
+  counts = {op: genotype.count(op) for op in PRIMITIVES}
+  return counts
 
 NASNet = Genotype(
   normal = [

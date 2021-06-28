@@ -214,7 +214,7 @@ def main():
         std = [x / 255 for x in [63.22,  61.26, 65.09]]
         lists = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(16, padding=2), transforms.ToTensor(), transforms.Normalize(mean, std)]
         train_transform = transforms.Compose(lists)
-        imagenet_path = os.path.join(os.environ.get["TORCH_HOME"], "cifar.python/ImageNet16/")
+        imagenet_path = os.path.join(os.environ["TORCH_HOME"], "cifar.python/ImageNet16/")
         train_data = ImageNet16(root=imagenet_path, train=True, transform=train_transform, use_num_of_class_only=120)
         assert len(train_data) == 151700
 
@@ -291,9 +291,8 @@ def main():
                         }, "epoch": epoch
                     }
                 
-                wandb.log({**acc_log, **loss_log, **true_acc_log})
                 log_epoch = epoch if i == 0 else epoch + train_epochs[0]
-
+                wandb.log({**acc_log, **loss_log, **true_acc_log, "epoch": log_epoch})
                 writer.add_scalars('accuracy', {'train':train_acc,'valid':valid_acc}, log_epoch)
                 writer.add_scalars('loss', {'train':train_obj,'valid':valid_obj}, log_epoch)
                 writer.add_scalars('nasbench201/cifar10', {'train':cifar10_train,'test':cifar10_test}, log_epoch)
@@ -458,6 +457,8 @@ def infer(valid_queue, model, criterion):
 
     with torch.no_grad():
         for step, (input, target) in enumerate(valid_queue):
+            if step > 200:
+                break
             input = input.cuda()
             target = target.cuda(non_blocking=True)
 

@@ -20,6 +20,9 @@ from architect import Architect
 import utils as utils
 import wandb
 from sotl_utils import format_input_data, fo_grad_if_possible, hyper_meta_step, hypergrad_outer
+import nasbench301 as nb
+from genotypes import count_ops
+
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='datapath', help='location of the data corpus')
@@ -99,7 +102,38 @@ def wandb_auth(fname: str = "nas_key.txt"):
       key = f.read().strip()
       os.environ["WANDB_API_KEY"] = key
   wandb.login()
-  
+
+def load_nb301():
+    version = '0.9'
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    models_0_9_dir = os.path.join(current_dir, 'nb_models_0.9')
+    model_paths_0_9 = {
+        model_name : os.path.join(models_0_9_dir, '{}_v0.9'.format(model_name))
+        for model_name in ['xgb', 'gnn_gin', 'lgb_runtime']
+    }
+    models_1_0_dir = os.path.join(current_dir, 'nb_models_1.0')
+    model_paths_1_0 = {
+        model_name : os.path.join(models_1_0_dir, '{}_v1.0'.format(model_name))
+        for model_name in ['xgb', 'gnn_gin', 'lgb_runtime']
+    }
+    model_paths = model_paths_0_9 if version == '0.9' else model_paths_1_0
+
+    # If the models are not available at the paths, automatically download
+    # the models
+    # Note: If you would like to provide your own model locations, comment this out
+    if not all(os.path.exists(model) for model in model_paths.values()):
+        nb.download_models(version=version, delete_zip=True,
+                        download_dir=current_dir)
+
+    # Load the performance surrogate model
+    #NOTE: Loading the ensemble will set the seed to the same as used during training (logged in the model_configs.json)
+    #NOTE: Defaults to using the default model download path
+    print("==> Loading performance surrogate model...")
+    ensemble_dir_performance = model_paths['xgb']
+    print(ensemble_dir_performance)
+    performance_model = nb.load_ensemble(ensemble_dir_performance)
+    
+    return performance_model
     
 def main():
   if not torch.cuda.is_available():
@@ -198,6 +232,8 @@ def main():
   train_epochs = [2, 2] if 'debug' in args.save else [25, 25]
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
     optimizer, float(sum(train_epochs)), eta_min=args.learning_rate_min)
+  
+  api = load_nb301()
 
   for i, current_epochs in enumerate(train_epochs):
     for e in range(current_epochs):
@@ -217,8 +253,14 @@ def main():
       logging.info('valid_acc %f', valid_acc)
       
       final_acc = performance_model.predict(config=model.genotype(), representation="genotype", with_noise=False)
-      
-      wandb.log({"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, "valid_loss":valid_obj, "epoch":epoch, "final_acc": final_acc})
+      log_epoch = epoch if i == 0 else epoch + train_epochs[0]
+
+      genotype_perf = api.predict(config=model.genotype(), representation='genotype', with_noise=False)
+      logging.info(f"Genotype performance: {genotype_perf}, ops_count: {ops_count}")
+      ops_count = count_ops(genotype)
+
+      wandb.log({"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, 
+                 "valid_loss":valid_obj, "epoch":log_epoch, "search.final.cifar10":genotype_perf, "ops": ops_count})
       
       epoch += 1
       scheduler.step()

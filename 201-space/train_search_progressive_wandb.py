@@ -283,8 +283,8 @@ def main():
                         }, "epoch": epoch
                     }
                 
-                wandb.log({**acc_log, **loss_log, **true_acc_log})
                 log_epoch = epoch if i == 0 else epoch + train_epochs[0]
+                wandb.log({**acc_log, **loss_log, **true_acc_log, "epoch": log_epoch})
                 writer.add_scalars('accuracy', {'train':train_acc,'valid':valid_acc}, log_epoch)
                 writer.add_scalars('loss', {'train':train_obj,'valid':valid_obj}, log_epoch)
                 writer.add_scalars('nasbench201/cifar10', {'train':cifar10_train,'test':cifar10_test}, log_epoch)
