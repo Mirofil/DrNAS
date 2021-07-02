@@ -207,3 +207,13 @@ def prune(x, num_keep, mask, reset=False):
       dim=1, index=index, src=torch.ones_like(src,dtype=torch.bool))
   return mask
 
+def save_checkpoint2(state, filename):
+  if osp.isfile(filename):
+    os.remove(filename)
+  try:
+    torch.save(state, filename.parent / (filename.name + 'tmp'))
+    os.replace(filename.parent / (filename.name + 'tmp'), filename)
+  except Exception as e:
+    print(f"Failed to save new checkpoint into {filename} due to {e}")
+  assert osp.isfile(filename), 'save filename : {:} failed, which is not found.'.format(filename)
+  return filename
