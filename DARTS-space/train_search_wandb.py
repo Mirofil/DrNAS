@@ -243,8 +243,8 @@ def main():
       log_epoch = epoch if i == 0 else epoch + train_epochs[0]
       
       genotype_perf = api.predict(config=model.genotype(), representation='genotype', with_noise=False)
-      logging.info(f"Genotype performance: {genotype_perf}, ops_count: {ops_count}")
       ops_count = count_ops(genotype)
+      logging.info(f"Genotype performance: {genotype_perf}, ops_count: {ops_count}")
 
       wandb_log = {"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, "valid_loss":valid_obj, 
                  "epoch":log_epoch, "search.final.cifar10":genotype_perf, "ops":ops_count, "alphas": model._arch_parameters}
