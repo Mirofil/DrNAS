@@ -21,6 +21,7 @@ import utils as utils
 import wandb
 import nasbench301 as nb
 from genotypes import count_ops
+from pathlib import Path
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='datapath', help='location of the data corpus')
@@ -160,6 +161,24 @@ def main():
   model = model.cuda()
   logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
+  if os.path.exists(Path(args.save) / "checkpoint.pt"):
+    checkpoint = torch.load(Path(args.save) / "checkpoint.pt")
+    # optimizer.load_state_dict(checkpoint["w_optimizer"])
+    # architect.optimizer.load_state_dict(checkpoint["a_optimizer"])
+    # scheduler.load_state_dict(checkpoint["w_scheduler"])
+    
+    model = checkpoint["model"].cuda()
+    start_epoch = checkpoint["epoch"]
+    all_logs = checkpoint["all_logs"]
+    # alphas = checkpoint["alphas"]
+    # for p1, p2 in zip(model._arch_parameters, alphas):
+    #   p1.data = p2.data
+    
+  else:
+    print(f"Path at {Path(args.save) / 'checkpoint.pt'} does not exist")
+    start_epoch=0
+    all_logs=[]
+
   optimizer = torch.optim.SGD(
     model.parameters(),
     args.learning_rate,
@@ -197,7 +216,13 @@ def main():
     optimizer, float(sum(train_epochs)), eta_min=args.learning_rate_min)
 
   api = load_nb301()
-
+  
+  if os.path.exists(Path(args.save) / "checkpoint.pt"):
+    # checkpoint = torch.load(Path(args.save) / "checkpoint.pt")
+    optimizer.load_state_dict(checkpoint["w_optimizer"])
+    architect.optimizer.load_state_dict(checkpoint["a_optimizer"])
+    scheduler.load_state_dict(checkpoint["w_scheduler"])
+    
   for i, current_epochs in enumerate(train_epochs):
     for e in range(current_epochs):
       lr = scheduler.get_lr()[0]
@@ -221,12 +246,20 @@ def main():
       logging.info(f"Genotype performance: {genotype_perf}, ops_count: {ops_count}")
       ops_count = count_ops(genotype)
 
-      wandb.log({"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, "valid_loss":valid_obj, 
-                 "epoch":log_epoch, "search.final.cifar10":genotype_perf, "ops":ops_count})
+      wandb_log = {"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, "valid_loss":valid_obj, 
+                 "epoch":log_epoch, "search.final.cifar10":genotype_perf, "ops":ops_count, "alphas": model._arch_parameters}
+      wandb.log(wandb_log)
+      all_logs.append(wandb_log)
       
       epoch += 1
       scheduler.step()
-      utils.save(model, os.path.join(args.save, 'weights.pt'))
+      
+      
+      utils.save_checkpoint2({"model":model, "w_optimizer":optimizer.state_dict(), 
+                           "a_optimizer":architect.optimizer.state_dict(), "w_scheduler":scheduler.state_dict(), "epoch": epoch, "all_logs":all_logs}, 
+                          Path(args.save) / "checkpoint.pt")
+      print(f"Saved checkpoint to {Path(args.save) / 'checkpoint.pt'}")
+      # utils.save(model, os.path.join(args.save, 'weights.pt'))
     
     if not i == len(train_epochs) - 1:
       model.pruning(num_keeps[i+1])
