@@ -208,6 +208,7 @@ def prune(x, num_keep, mask, reset=False):
   return mask
 
 def save_checkpoint2(state, filename):
+  from os import path as osp
   if osp.isfile(filename):
     os.remove(filename)
   try:
