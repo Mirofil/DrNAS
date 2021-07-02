@@ -50,8 +50,8 @@ parser.add_argument('--reg_type', type=str, default='l2', choices=['l2', 'kl'], 
 parser.add_argument('--reg_scale', type=float, default=1e-3, help='scaling factor of the regularization term, default value is proper for l2, for kl you might adjust reg_scale to match l2')
 args = parser.parse_args()
 
-args.save = './experiments/{}/search-progressive-{}-{}-{}'.format(
-    args.dataset, args.save, time.strftime("%Y%m%d-%H%M%S"), args.seed)
+args.save = './experiments/{}/search-progressive-{}-{}'.format(
+    args.dataset, args.save, args.seed)
 args.save += '-init_channels-' + str(args.init_channels)
 args.save += '-layers-' + str(args.layers) 
 args.save += '-init_pc-' + str(args.k)
