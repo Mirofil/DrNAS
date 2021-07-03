@@ -22,6 +22,7 @@ import wandb
 import nasbench301 as nb
 from genotypes import count_ops
 from pathlib import Path
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='datapath', help='location of the data corpus')
@@ -177,6 +178,8 @@ def main():
     # alphas = checkpoint["alphas"]
     # for p1, p2 in zip(model._arch_parameters, alphas):
     #   p1.data = p2.data
+    if start_epoch > 50:
+      start_epoch = start_epoch - 25
     
   else:
     print(f"Path at {Path(args.save) / 'checkpoint.pt'} does not exist")
@@ -226,15 +229,17 @@ def main():
     optimizer.load_state_dict(checkpoint["w_optimizer"])
     architect.optimizer.load_state_dict(checkpoint["a_optimizer"])
     scheduler.load_state_dict(checkpoint["w_scheduler"])
+    epoch = start_epoch
     
   if start_epoch >= train_epochs[0]:
     train_epochs=train_epochs[1:]
     print(f"Original start_epoch = {start_epoch}")
-    start_epoch = start_epoch - train-train_epochs[0]
+    epoch = start_epoch
+    start_epoch = start_epoch - train_epochs[0]
     print(f"New start_epoch = {start_epoch}")
     
   for i, current_epochs in enumerate(train_epochs):
-    for e in range(start_epoch, current_epochs):
+    for e in tqdm(range(start_epoch, current_epochs), desc = "Iterating over epochs"):
       lr = scheduler.get_lr()[0]
       logging.info('epoch %d lr %e', epoch, lr)
 
@@ -250,7 +255,7 @@ def main():
       valid_acc, valid_obj = infer(valid_queue, model, criterion)
       logging.info('valid_acc %f', valid_acc)
       
-      log_epoch = epoch if i == 0 else epoch + train_epochs[0]
+      log_epoch = epoch
       
       genotype_perf = api.predict(config=model.genotype(), representation='genotype', with_noise=False)
       ops_count = count_ops(genotype)
