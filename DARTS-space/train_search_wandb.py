@@ -227,8 +227,14 @@ def main():
     architect.optimizer.load_state_dict(checkpoint["a_optimizer"])
     scheduler.load_state_dict(checkpoint["w_scheduler"])
     
+  if start_epoch >= train_epochs[0]:
+    train_epochs=train_epochs[1:]
+    print(f"Original start_epoch = {start_epoch}")
+    start_epoch = start_epoch - train-train_epochs[0]
+    print(f"New start_epoch = {start_epoch}")
+    
   for i, current_epochs in enumerate(train_epochs):
-    for e in range(current_epochs):
+    for e in range(start_epoch, current_epochs):
       lr = scheduler.get_lr()[0]
       logging.info('epoch %d lr %e', epoch, lr)
 
