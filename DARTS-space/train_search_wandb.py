@@ -173,13 +173,16 @@ def main():
     # scheduler.load_state_dict(checkpoint["w_scheduler"])
     
     model = checkpoint["model"].cuda()
-    start_epoch = checkpoint["epoch"]
+    total_epoch = checkpoint["epoch"]
     all_logs = checkpoint["all_logs"]
     # alphas = checkpoint["alphas"]
     # for p1, p2 in zip(model._arch_parameters, alphas):
     #   p1.data = p2.data
-    if start_epoch > 50:
-      start_epoch = start_epoch - 25
+    if total_epoch > 50:
+      print(f"The training should already be over since we have epoch={total_epoch}!")
+      start_epoch = total_epoch - 25
+    else:
+      start_epoch = total_epoch
     
   else:
     print(f"Path at {Path(args.save) / 'checkpoint.pt'} does not exist")
@@ -232,14 +235,18 @@ def main():
     epoch = start_epoch
     
   if start_epoch >= train_epochs[0]:
-    train_epochs=train_epochs[1:]
     print(f"Original start_epoch = {start_epoch}")
     epoch = start_epoch
     start_epoch = start_epoch - train_epochs[0]
     print(f"New start_epoch = {start_epoch}")
+    train_epochs=train_epochs[1:]
+
     
-  for i, current_epochs in enumerate(train_epochs):
+  for i, current_epochs in tqdm(enumerate(train_epochs), desc = "Iterating over progressive phases"):
     for e in tqdm(range(start_epoch, current_epochs), desc = "Iterating over epochs"):
+      if epoch >= 50:
+        print(f"The trainign should be over since the total epoch={epoch}!")
+        break
       lr = scheduler.get_lr()[0]
       logging.info('epoch %d lr %e', epoch, lr)
 
