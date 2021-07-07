@@ -68,7 +68,10 @@ args.save = './experiments/{}/search-progressive-higher-{}-{}'.format(
 args.save += '-init_channels-' + str(args.init_channels)
 args.save += '-layers-' + str(args.layers) 
 args.save += '-init_pc-' + str(args.k)
-utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+try:
+  utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+except Exception as e:
+  print(f"Failed to create dir due to {e}")
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
