@@ -71,7 +71,7 @@ args.save += '-init_pc-' + str(args.k)
 try:
   utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 except Exception as e:
-  print(f"Failed to create dir due to {e}")
+  print(f"Couldnt create exp dir due to {e}")
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -80,7 +80,6 @@ fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
-logger = logging.getLogger()
 
 CIFAR_CLASSES = 10
 if args.dataset == 'cifar100':
@@ -117,7 +116,7 @@ def wandb_auth(fname: str = "nas_key.txt"):
       key = f.read().strip()
       os.environ["WANDB_API_KEY"] = key
   wandb.login()
-
+  
 def load_nb301():
     version = '0.9'
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -149,6 +148,7 @@ def load_nb301():
     performance_model = nb.load_ensemble(ensemble_dir_performance)
     
     return performance_model
+
     
 def main():
   if not torch.cuda.is_available():
@@ -169,41 +169,6 @@ def main():
   import os
   from collections import namedtuple
 
-  from ConfigSpace.read_and_write import json as cs_json
-
-  import nasbench301 as nb
-
-  # Default dirs for models
-  # Note: Uses 0.9 as the default models, switch to 1.0 to use 1.0 models
-  version = '0.9'
-
-  current_dir = os.path.dirname(os.path.abspath(__file__))
-  models_0_9_dir = os.path.join(current_dir, 'nb_models_0.9')
-  model_paths_0_9 = {
-      model_name : os.path.join(models_0_9_dir, '{}_v0.9'.format(model_name))
-      for model_name in ['xgb', 'gnn_gin', 'lgb_runtime']
-  }
-  models_1_0_dir = os.path.join(current_dir, 'nb_models_1.0')
-  model_paths_1_0 = {
-      model_name : os.path.join(models_1_0_dir, '{}_v1.0'.format(model_name))
-      for model_name in ['xgb', 'gnn_gin', 'lgb_runtime']
-  }
-  model_paths = model_paths_0_9 if version == '0.9' else model_paths_1_0
-
-  # If the models are not available at the paths, automatically download
-  # the models
-  # Note: If you would like to provide your own model locations, comment this out
-  if not all(os.path.exists(model) for model in model_paths.values()):
-      nb.download_models(version=version, delete_zip=True,
-                        download_dir=current_dir)
-
-  # Load the performance surrogate model
-  #NOTE: Loading the ensemble will set the seed to the same as used during training (logged in the model_configs.json)
-  #NOTE: Defaults to using the default model download path
-  print("==> Loading performance surrogate model...")
-  ensemble_dir_performance = model_paths['xgb']
-  print(ensemble_dir_performance)
-  performance_model = nb.load_ensemble(ensemble_dir_performance)
 
   criterion = nn.CrossEntropyLoss()
   criterion = criterion.cuda()
@@ -211,7 +176,7 @@ def main():
                   reg_type=args.reg_type, reg_scale=args.reg_scale)
   model = model.cuda()
   logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
-  
+
   if os.path.exists(Path(args.save) / "checkpoint.pt"):
     checkpoint = torch.load(Path(args.save) / "checkpoint.pt")
     # optimizer.load_state_dict(checkpoint["w_optimizer"])
@@ -219,19 +184,22 @@ def main():
     # scheduler.load_state_dict(checkpoint["w_scheduler"])
     
     model = checkpoint["model"].cuda()
-    start_epoch = checkpoint["epoch"]
+    total_epoch = checkpoint["epoch"]
     all_logs = checkpoint["all_logs"]
     # alphas = checkpoint["alphas"]
     # for p1, p2 in zip(model._arch_parameters, alphas):
     #   p1.data = p2.data
-    if start_epoch > 50:
-      start_epoch = start_epoch - 25
+    if total_epoch > 50:
+      print(f"The training should already be over since we have epoch={total_epoch}!")
+      start_epoch = total_epoch - 25
+    else:
+      start_epoch = total_epoch
     
   else:
     print(f"Path at {Path(args.save) / 'checkpoint.pt'} does not exist")
     start_epoch=0
     all_logs=[]
-    
+
   optimizer = torch.optim.SGD(
     model.parameters(),
     args.learning_rate,
@@ -267,9 +235,9 @@ def main():
   train_epochs = [2, 2] if 'debug' in args.save else [25, 25]
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
     optimizer, float(sum(train_epochs)), eta_min=args.learning_rate_min)
-  
-  api = load_nb301()
 
+  api = load_nb301()
+  
   if os.path.exists(Path(args.save) / "checkpoint.pt"):
     # checkpoint = torch.load(Path(args.save) / "checkpoint.pt")
     optimizer.load_state_dict(checkpoint["w_optimizer"])
@@ -281,10 +249,11 @@ def main():
     print(f"Original start_epoch = {start_epoch}")
     epoch = start_epoch
     start_epoch = start_epoch - train_epochs[0]
-    train_epochs=train_epochs[1:]
     print(f"New start_epoch = {start_epoch}")
+    train_epochs=train_epochs[1:]
 
-  for i, current_epochs in tqdm(enumerate(train_epochs), desc = "Iterating over progressive stages"):
+    
+  for i, current_epochs in tqdm(enumerate(train_epochs), desc = "Iterating over progressive phases"):
     for e in tqdm(range(start_epoch, current_epochs), desc = "Iterating over epochs"):
       if epoch >= 50:
         print(f"The trainign should be over since the total epoch={epoch}!")
@@ -299,7 +268,7 @@ def main():
       # training
       train_acc, train_obj = train_higher(train_queue=train_queue, valid_queue=valid_queue, network=model, architect=architect, 
                                           criterion=criterion, w_optimizer=optimizer, a_optimizer=architect.optimizer, lr=lr, epoch=e, 
-                                          inner_steps=args.inner_steps)
+                                          inner_steps=args.inner_steps)      
       logging.info('train_acc %f', train_acc)
 
       # validation
@@ -308,22 +277,24 @@ def main():
       
       log_epoch = epoch
       
+      
       genotype_perf = api.predict(config=model.genotype(), representation='genotype', with_noise=False)
       ops_count = count_ops(genotype)
       logging.info(f"Genotype performance: {genotype_perf}, ops_count: {ops_count}")
 
       wandb_log = {"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, "valid_loss":valid_obj, 
                  "epoch":log_epoch, "search.final.cifar10":genotype_perf, "ops":ops_count, "alphas": model._arch_parameters}
-      all_logs.append(wandb_log)
       wandb.log(wandb_log)
-      
+      all_logs.append(wandb_log)
       
       epoch += 1
       scheduler.step()
       
+      
       utils.save_checkpoint2({"model":model, "w_optimizer":optimizer.state_dict(), 
-                      "a_optimizer":architect.optimizer.state_dict(), "w_scheduler":scheduler.state_dict(), "epoch": epoch, "all_logs":all_logs}, 
-                    Path(args.save) / "checkpoint.pt")
+                           "a_optimizer":architect.optimizer.state_dict(), "w_scheduler":scheduler.state_dict(), "epoch": epoch, "all_logs":all_logs}, 
+                          Path(args.save) / "checkpoint.pt")
+      print(f"Saved checkpoint to {Path(args.save) / 'checkpoint.pt'}")
       # utils.save(model, os.path.join(args.save, 'weights.pt'))
     
     if not i == len(train_epochs) - 1:
