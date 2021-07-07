@@ -278,14 +278,17 @@ def main():
     epoch = start_epoch
     
   if start_epoch >= train_epochs[0]:
-    train_epochs=train_epochs[1:]
     print(f"Original start_epoch = {start_epoch}")
     epoch = start_epoch
     start_epoch = start_epoch - train_epochs[0]
+    train_epochs=train_epochs[1:]
     print(f"New start_epoch = {start_epoch}")
 
-  for i, current_epochs in enumerate(train_epochs):
-    for e in tqdm(range(current_epochs), desc = "Iterating over epochs"):
+  for i, current_epochs in tqdm(enumerate(train_epochs), desc = "Iterating over progressive stages"):
+    for e in tqdm(range(start_epoch, current_epochs), desc = "Iterating over epochs"):
+      if epoch >= 50:
+        print(f"The trainign should be over since the total epoch={epoch}!")
+        break
       lr = scheduler.get_lr()[0]
       logging.info('epoch %d lr %e', epoch, lr)
 
