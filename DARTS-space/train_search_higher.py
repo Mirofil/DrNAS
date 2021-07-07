@@ -282,7 +282,7 @@ def main():
     print(f"New start_epoch = {start_epoch}")
 
   for i, current_epochs in enumerate(train_epochs):
-    for e in range(current_epochs):
+    for e in tqdm(range(current_epochs), desc = "Iterating over epochs"):
       lr = scheduler.get_lr()[0]
       logging.info('epoch %d lr %e', epoch, lr)
 
@@ -392,7 +392,7 @@ def train_higher(train_queue, valid_queue, network, architect, criterion, w_opti
     train_iter = iter(train_queue)
     valid_iter = iter(valid_queue)
     search_loader_iter = zip(train_iter, valid_iter)
-    for data_step, ((base_inputs, base_targets), (arch_inputs, arch_targets)) in enumerate(search_loader_iter):
+    for data_step, ((base_inputs, base_targets), (arch_inputs, arch_targets)) in tqdm(enumerate(search_loader_iter), desc = "Iterating over batches", total = round(len(train_queue)/inner_steps)):
         network.train()
         n = base_inputs.size(0)
 
