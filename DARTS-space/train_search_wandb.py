@@ -245,7 +245,8 @@ def main():
   for i, current_epochs in tqdm(enumerate(train_epochs), desc = "Iterating over progressive phases"):
     for e in tqdm(range(start_epoch, current_epochs), desc = "Iterating over epochs"):
       if epoch >= 50:
-        print(f"The trainign should be over since the total epoch={epoch}!")
+        print(f"The trainign should be over since the total epoch={epoch}!
+              ")
         break
       lr = scheduler.get_lr()[0]
       logging.info('epoch %d lr %e', epoch, lr)
@@ -263,6 +264,7 @@ def main():
       logging.info('valid_acc %f', valid_acc)
       
       log_epoch = epoch
+      
       
       genotype_perf = api.predict(config=model.genotype(), representation='genotype', with_noise=False)
       ops_count = count_ops(genotype)
