@@ -62,7 +62,7 @@ parser.add_argument('--meta_algo' ,       type=str, choices=['reptile', 'metapro
 
 args = parser.parse_args()
 
-args.save = './experiments/{}/search-progressive-{}-{}-{}'.format(
+args.save = './experiments/{}/search-progressive-higher-{}-{}-{}'.format(
     args.dataset, args.save, time.strftime("%Y%m%d-%H%M%S"), args.seed)
 args.save += '-init_channels-' + str(args.init_channels)
 args.save += '-layers-' + str(args.layers) 
