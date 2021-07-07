@@ -291,7 +291,9 @@ def main():
       model.show_arch_parameters()
 
       # training
-      train_acc, train_obj = train_higher(train_queue, valid_queue, model, architect, criterion, optimizer, lr, e, inner_steps=args.inner_steps)
+      train_acc, train_obj = train_higher(train_queue=train_queue, valid_queue=valid_queue, network=model, architect=architect, 
+                                          criterion=criterion, w_optimizer=optimizer, a_optimizer=architect.optimizer, lr=lr, epoch=e, 
+                                          inner_steps=args.inner_steps)
       logging.info('train_acc %f', train_acc)
 
       # validation
