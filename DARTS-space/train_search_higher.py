@@ -58,6 +58,7 @@ parser.add_argument('--higher_loop' ,       type=str, choices=['bilevel', 'joint
 parser.add_argument('--higher_reduction' ,       type=str, choices=['mean', 'sum'],   default='sum', help='Reduction across inner steps - relevant for first-order approximation')
 parser.add_argument('--higher_reduction_outer' ,       type=str, choices=['mean', 'sum'],   default='sum', help='Reduction across the meta-betach size')
 parser.add_argument('--meta_algo' ,       type=str, choices=['reptile', 'metaprox', 'darts_higher', "gdas_higher", "setn_higher", "enas_higher"],   default=None, help='Whether to do meta-gradients with respect to the meta-weights or architecture')
+parser.add_argument('--inner_steps', type=int, default=100, help='random seed')
 
 
 args = parser.parse_args()
@@ -290,7 +291,7 @@ def main():
       model.show_arch_parameters()
 
       # training
-      train_acc, train_obj = train_higher(train_queue, valid_queue, model, architect, criterion, optimizer, lr, e)
+      train_acc, train_obj = train_higher(train_queue, valid_queue, model, architect, criterion, optimizer, lr, e, inner_steps=args.inner_steps)
       logging.info('train_acc %f', train_acc)
 
       # validation
