@@ -269,7 +269,7 @@ def main():
       # training
       train_acc, train_obj = train_higher(train_queue=train_queue, valid_queue=valid_queue, network=model, architect=architect, 
                                           criterion=criterion, w_optimizer=optimizer, a_optimizer=architect.optimizer, lr=lr, epoch=e, 
-                                          inner_steps=args.inner_steps)      
+                                          inner_steps=args.inner_steps, logger=logger)      
       logging.info('train_acc %f', train_acc)
 
       # validation
@@ -360,7 +360,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
 
   return top1.avg, objs.avg
 
-def train_higher(train_queue, valid_queue, network, architect, criterion, w_optimizer, a_optimizer, lr, epoch, inner_steps=100):
+def train_higher(train_queue, valid_queue, network, architect, criterion, w_optimizer, a_optimizer, lr, epoch, inner_steps=100, logger=None):
     import higher
     
     objs = utils.AvgrageMeter()
