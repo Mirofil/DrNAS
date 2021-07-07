@@ -164,6 +164,7 @@ def main():
   torch.cuda.manual_seed(args.seed)
   logging.info('gpu device = %d' % args.gpu)
   logging.info("args = %s", args)
+  logger = logging.getLogger()
 
 
   import os
