@@ -24,6 +24,7 @@ import nasbench301 as nb
 from genotypes import count_ops
 from pathlib import Path
 from tqdm import tqdm
+from utils import genotype_depth, genotype_width
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='datapath', help='location of the data corpus')
@@ -281,7 +282,10 @@ def main():
       
       genotype_perf = api.predict(config=model.genotype(), representation='genotype', with_noise=False)
       ops_count = count_ops(genotype)
-      logging.info(f"Genotype performance: {genotype_perf}, ops_count: {ops_count}")
+      width = {k:genotype_width(g) for k, g in [("normal", genotype.normal), ("reduce", genotype.reduce)]}
+      depth = {k:genotype_depth(g) for k, g in [("normal", genotype.normal), ("reduce", genotype.reduce)]}
+
+      logging.info(f"Genotype performance: {genotype_perf}, width: {width}, depth: {depth}, ops_count: {ops_count}")
 
       wandb_log = {"train_acc":train_acc, "train_loss":train_obj, "valid_acc":valid_acc, "valid_loss":valid_obj, 
                  "epoch":log_epoch, "search.final.cifar10":genotype_perf, "ops":ops_count, "alphas": model._arch_parameters}
