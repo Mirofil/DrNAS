@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import shutil
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-
+from collections import defaultdict
 
 class AvgrageMeter(object):
 
