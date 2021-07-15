@@ -258,6 +258,10 @@ def main():
     print(f"New start_epoch = {start_epoch}")
     train_epochs=train_epochs[1:]
 
+
+  if len(all_logs) >= sum(train_epochs):
+    for log in all_logs:
+      wandb.log(log)
     
   for i, current_epochs in tqdm(enumerate(train_epochs), desc = "Iterating over progressive phases"):
     for e in tqdm(range(start_epoch, current_epochs), desc = "Iterating over epochs"):
@@ -323,8 +327,7 @@ def main():
   model.show_arch_parameters()
   
   logging.info(f"Printing all logs : {len(all_logs)}")
-  for log in all_logs:
-    wandb.log(log)
+
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, epoch):
