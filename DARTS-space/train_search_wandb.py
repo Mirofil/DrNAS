@@ -177,6 +177,7 @@ def main():
     model = checkpoint["model"].cuda()
     total_epoch = checkpoint["epoch"]
     all_logs = checkpoint["all_logs"]
+    print(f"Len of all_logs: {len(all_logs)}")
     # alphas = checkpoint["alphas"]
     # for p1, p2 in zip(model._arch_parameters, alphas):
     #   p1.data = p2.data
