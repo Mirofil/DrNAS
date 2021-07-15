@@ -322,7 +322,7 @@ def main():
   logging.info('genotype = %s', genotype)
   model.show_arch_parameters()
   
-  print(f"Printing all logs : {len(all_logs)}")
+  logging.info(f"Printing all logs : {len(all_logs)}")
   for log in all_logs:
     wandb.log(log)
 
