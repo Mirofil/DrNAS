@@ -319,7 +319,8 @@ def main():
   genotype = model.genotype()
   logging.info('genotype = %s', genotype)
   model.show_arch_parameters()
-
+  for log in tqdm(all_logs, desc = "Logging all logs"):
+    wandb.log(log)
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, epoch):
   objs = utils.AvgrageMeter()
