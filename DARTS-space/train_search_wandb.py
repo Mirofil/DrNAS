@@ -302,11 +302,14 @@ def main():
         optimizer, float(sum(train_epochs)), eta_min=args.learning_rate_min))
       logging.info('pruning finish, %d ops left per edge', num_keeps[i+1])
       logging.info('network wider finish, current pc parameter %d', ks[i+1])
+      
+      start_epoch = 0
 
   genotype = model.genotype()
   logging.info('genotype = %s', genotype)
   model.show_arch_parameters()
-
+  for log in all_logs:
+    wandb.log(log)
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, epoch):
   objs = utils.AvgrageMeter()

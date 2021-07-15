@@ -320,6 +320,9 @@ def main():
   genotype = model.genotype()
   logging.info('genotype = %s', genotype)
   model.show_arch_parameters()
+  
+  for log in all_logs:
+    wandb.log(log)
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, epoch):
