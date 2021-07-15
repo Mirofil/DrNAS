@@ -257,6 +257,8 @@ def main():
     start_epoch = start_epoch - train_epochs[0]
     print(f"New start_epoch = {start_epoch}")
     train_epochs=train_epochs[1:]
+    
+    print(f"All logs len = {len(all_logs)}")
 
 
   if len(all_logs) >= sum(train_epochs):
@@ -328,7 +330,8 @@ def main():
   
   logging.info(f"Printing all logs : {len(all_logs)}")
 
-
+  for log in tqdm(all_logs, desc = "Logging all logs"):
+    wandb.log(log)
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, epoch):
   objs = utils.AvgrageMeter()
